@@ -8,6 +8,7 @@ fn main() {
     ex3_matmul();
     ex4_transpose();
     ex5_broadcast();
+    ex6_shape_practice();
 }
 
 // ────────────────────────────────────────────
@@ -233,6 +234,29 @@ fn ex5_broadcast() {
     print_matrix(&wx);
     println!("  W·x + bias:");
     print_matrix(&out);
+    println!();
+}
+
+// ────────────────────────────────────────────
+// 실습 6: shape 퀴즈 — 손으로 먼저 계산하고 확인
+// ────────────────────────────────────────────
+fn ex6_shape_practice() {
+    println!("── 실습 6: shape 계산 연습 ──\n");
+ 
+    println!("다음 행렬 곱의 결과 shape를 맞혀보세요:");
+    let cases: Vec<((usize,usize),(usize,usize))> = vec![
+        ((3,4),(4,5)),
+        ((1,8),(8,1)),
+        ((10,256),(256,768)),  // Embedding 레이어 예시
+        ((4,512),(512,768)),   // LLM Attention 예시
+    ];
+    for ((m,k1),(k2,n)) in &cases {
+        if k1 == k2 {
+            println!("  ({m}×{k1}) · ({k2}×{n}) = ({m}×{n})");
+        } else {
+            println!("  ({m}×{k1}) · ({k2}×{n}) = 에러! (내부 차원 불일치)");
+        }
+    }
     println!();
 }
 
