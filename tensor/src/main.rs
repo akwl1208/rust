@@ -9,6 +9,7 @@ fn main() {
     ex4_transpose();
     ex5_broadcast();
     ex6_shape_practice();
+    ex7_mini_project();
 }
 
 // ────────────────────────────────────────────
@@ -258,6 +259,42 @@ fn ex6_shape_practice() {
         }
     }
     println!();
+}
+
+// ────────────────────────────────────────────
+// 실습 7: 미니 프로젝트 — 직접 구현한 함수 검증
+// ────────────────────────────────────────────
+fn ex7_mini_project() {
+    println!("── 실습 7: 미니 프로젝트 검증 ──\n");
+    println!("아래는 직접 구현한 함수들의 검증입니다.");
+    println!("코드를 수정해서 자신의 구현으로 교체해보세요!\n");
+ 
+    // 검증 1: 행렬 곱
+    let a = vec![vec![1.0,2.0],vec![3.0,4.0]];
+    let b = vec![vec![5.0,6.0],vec![7.0,8.0]];
+    let c = matmul(&a, &b);
+    let expected = vec![vec![19.0,22.0],vec![43.0,50.0]];
+    println!("matmul 검증: {}", if c == expected { "✓ 통과" } else { "✗ 실패" });
+    print_matrix(&c);
+ 
+    // 검증 2: 전치
+    let t = transpose(&a);
+    let exp_t = vec![vec![1.0,3.0],vec![2.0,4.0]];
+    println!("transpose 검증: {}", if t == exp_t { "✓ 통과" } else { "✗ 실패" });
+    print_matrix(&t);
+ 
+    // 검증 3: (A·B)ᵀ == Bᵀ·Aᵀ  (수학적 성질 확인)
+    let lhs = transpose(&matmul(&a, &b));
+    let rhs = matmul(&transpose(&b), &transpose(&a));
+    println!("(A·B)ᵀ == Bᵀ·Aᵀ 성질: {}\n",
+        if lhs == rhs { "✓ 성립" } else { "✗ 불성립" });
+ 
+    // 🚀 도전 과제
+    println!("🚀 도전 과제:");
+    println!("  1. mat_add() 를 직접 구현해서 아래 함수 교체");
+    println!("  2. matmul()  을 3중 for문 없이 iterator로 구현");
+    println!("  3. softmax() 함수 구현 (Day 35 예습)");
+    println!("     힌트: exp(x_i) / sum(exp(x_j) for all j)");
 }
 
 // ================================================================
