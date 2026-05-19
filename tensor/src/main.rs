@@ -5,6 +5,8 @@ fn main() {
  
     ex1_scalar_vector_matrix();
     ex2_mat_add_scalar_mul();
+    ex3_matmul();
+
 }
 
 // ────────────────────────────────────────────
@@ -87,6 +89,60 @@ fn ex2_mat_add_scalar_mul() {
     println!();
 }
 
+// ────────────────────────────────────────────
+// 실습 3: 행렬 곱 (가장 중요!)
+// ────────────────────────────────────────────
+fn ex3_matmul() {
+    println!("── 실습 3: 행렬 곱 (matmul) ──\n");
+ 
+    // A: (2×3)
+    let a = vec![
+        vec![1.0, 2.0, 3.0],
+        vec![4.0, 5.0, 6.0],
+    ];
+    // B: (3×2)
+    let b = vec![
+        vec![7.0,  8.0],
+        vec![9.0,  10.0],
+        vec![11.0, 12.0],
+    ];
+
+    println!("A shape: ({}, {})", a.len(), a[0].len());
+    println!("B shape: ({}, {})", b.len(), b[0].len());
+    println!("A:");
+    print_matrix(&a);
+    println!("B:");
+    print_matrix(&b);
+
+    let c = matmul(&a, &b);
+ 
+    println!("C = A @ B:");
+    print_matrix(&c);
+    println!("C shape: ({}, {})  ← (2×3)·(3×2) = (2×2)", c.len(), c[0].len());
+
+    // 손계산 과정 출력
+    println!("\n손계산 과정:");
+    println!("  C[0][0] = 1×7 + 2×9 + 3×11 = 7 + 18 + 33 = {}", 1*7 + 2*9 + 3*11);
+    println!("  C[0][1] = 1×8 + 2×10 + 3×12 = 8 + 20 + 36 = {}", 1*8 + 2*10 + 3*12);
+    println!("  C[1][0] = 4×7 + 5×9 + 6×11 = 28 + 45 + 66 = {}", 4*7 + 5*9 + 6*11);
+    println!("  C[1][1] = 4×8 + 5×10 + 6×12 = 32 + 50 + 72 = {}", 4*8 + 5*10 + 6*12);
+
+    // shape 규칙 검증
+    println!("\n[shape 규칙] (m×k)·(k×n) = (m×n)");
+    println!("  ({m}×{k})·({k}×{n}) = ({m}×{n}) ✓",
+        m=2, k=3, n=2);
+
+    // shape 불일치 시 어떻게 처리하는지
+    let bad_b = vec![vec![1.0, 2.0], vec![3.0, 4.0]]; // (2×2) — 불일치
+    println!("\n잘못된 shape ({m}×{k})·({k2}×{n}) 시도:",
+        m=2, k=3, k2=2, n=2);
+    match matmul_safe(&a, &bad_b) {
+        Ok(r)  => print_matrix(&r),
+        Err(e) => println!("  에러: {e}"),
+    }
+    println!();
+}
+
 // ================================================================
 // 헬퍼 함수들 — 실제 구현부
 // ================================================================
@@ -127,4 +183,33 @@ fn scalar_mul(a: &Vec<Vec<f64>>, s: f64) -> Vec<Vec<f64>> {
     a.iter()
         .map(|row| row.iter().map(|x| x * s).collect())
         .collect()
+}
+
+/// 행렬 곱 — C[i][j] = Σ A[i][k]*B[k][j]
+/// A: (m×k)  B: (k×n)  →  C: (m×n)
+fn matmul(a: &Vec<Vec<f64>>, b: &Vec<Vec<f64>>) -> Vec<Vec<f64>> {
+    let m = a.len();
+    let k = a[0].len();
+    let n = b[0].len();
+
+    (0..m).map(|i| {
+        (0..n).map(|j| {
+            (0..k).map(|t| a[i][t] * b[t][j]).sum() 
+        }).collect()
+    }).collect()
+}
+
+/// shape 검증 포함 행렬 곱
+fn matmul_safe(
+    a: &Vec<Vec<f64>>,
+    b: &Vec<Vec<f64>>,
+) -> Result<Vec<Vec<f64>>, String> {
+    let k1 = a[0].len();
+    let k2 = b.len();
+    if k1 != k2 {
+        return Err(format!(
+            "shape 불일치: A의 열({k1}) ≠ B의 행({k2})"
+        ));
+    }
+    Ok(matmul(a, b))
 }
