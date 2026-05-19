@@ -6,7 +6,7 @@ fn main() {
     ex1_scalar_vector_matrix();
     ex2_mat_add_scalar_mul();
     ex3_matmul();
-
+    ex4_transpose();
 }
 
 // ────────────────────────────────────────────
@@ -143,6 +143,48 @@ fn ex3_matmul() {
     println!();
 }
 
+// ────────────────────────────────────────────
+// 실습 4: 전치 (Transpose)
+// ────────────────────────────────────────────
+fn ex4_transpose() {
+    println!("── 실습 4: 전치(Transpose) ──\n");
+ 
+    let a = vec![
+        vec![1.0, 2.0, 3.0],
+        vec![4.0, 5.0, 6.0],
+    ];
+
+    println!("원본 A  shape ({}, {}):", a.len(), a[0].len());
+    print_matrix(&a);
+ 
+    let at = transpose(&a);
+    println!("전치 Aᵀ shape ({}, {}):", at.len(), at[0].len());
+    print_matrix(&at);
+ 
+    println!("규칙: A[i][j] → Aᵀ[j][i]");
+    println!("  A[0][1] = {}  →  Aᵀ[1][0] = {}", a[0][1], at[1][0]);
+
+    // Attention에서 나오는 패턴: Q · Kᵀ
+    // Q: (seq=4, d_k=3)  K: (seq=4, d_k=3)
+    // Q · Kᵀ = (4,3)·(3,4) = (4,4) — 각 토큰 간 유사도 행렬
+    let q = vec![
+        vec![0.1, 0.2, 0.3],
+        vec![0.4, 0.5, 0.6],
+        vec![0.7, 0.8, 0.9],
+        vec![1.0, 1.1, 1.2],
+    ]; // (4, 3)
+    let k = q.clone(); // 동일 행렬로 테스트
+    let kt = transpose(&k);
+    let scores = matmul(&q, &kt);
+    println!("\nAttention 패턴 — Q·Kᵀ:");
+    println!("  Q shape: ({}, {})  Kᵀ shape: ({}, {})",
+        q.len(), q[0].len(), kt.len(), kt[0].len());
+    println!("  scores shape: ({}, {})  ← 토큰×토큰 유사도",
+        scores.len(), scores[0].len());
+    print_matrix(&scores);
+    println!();
+}
+
 // ================================================================
 // 헬퍼 함수들 — 실제 구현부
 // ================================================================
@@ -212,4 +254,13 @@ fn matmul_safe(
         ));
     }
     Ok(matmul(a, b))
+}
+
+/// 전치 — A[i][j] → Aᵀ[j][i]
+fn transpose(a: &Vec<Vec<f64>>) -> Vec<Vec<f64>> {
+    let rows = a.len();
+    let cols = a[0].len();
+    (0..cols)
+        .map(|j| (0..rows).map(|i| a[i][j]).collect())
+        .collect()
 }
