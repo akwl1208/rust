@@ -7,6 +7,7 @@ fn main() {
     ex2_mat_add_scalar_mul();
     ex3_matmul();
     ex4_transpose();
+    ex5_broadcast();
 }
 
 // ────────────────────────────────────────────
@@ -185,6 +186,56 @@ fn ex4_transpose() {
     println!();
 }
 
+// ────────────────────────────────────────────
+// 실습 5: 브로드캐스팅
+// 크기가 안 맞는 연산을 할 때, 부족한 쪽을 똑같은 값으로 쫙 늘려서(Broadcasting) 아귀를 맞춰주는 편리한 기능
+// ────────────────────────────────────────────
+fn ex5_broadcast() {
+    println!("── 실습 5: 브로드캐스팅 ──\n");
+
+    let a = vec![
+        vec![1.0, 2.0, 3.0],
+        vec![4.0, 5.0, 6.0],
+    ]; // (2, 3)
+ 
+    // 케이스 1: 행렬 + 스칼라
+    let c1 = broadcast_scalar_add(&a, 10.0);
+    println!("케이스 1: A({},{})+스칼라(10)", a.len(), a[0].len());
+    print_matrix(&c1);
+
+    // 케이스 2: 행렬 + 행벡터 (각 행에 더하기)
+    let bias = vec![10.0, 20.0, 30.0]; // (3,)
+    let c2 = broadcast_row_add(&a, &bias);
+    println!("케이스 2: A({},{})+벡터({},)  [각 행에 더함]",
+        a.len(), a[0].len(), bias.len());
+    print_matrix(&c2);
+
+    // 케이스 3: 행렬 + 열벡터 (각 열에 더하기)
+    let col = vec![100.0, 200.0]; // (2,)
+    let c3 = broadcast_col_add(&a, &col);
+    println!("케이스 3: A({},{})+열벡터({},)  [각 열에 더함]",
+        a.len(), a[0].len(), col.len());
+    print_matrix(&c3);
+
+    // 실제 ML에서 자주 쓰는 패턴: Linear 레이어
+    // output = W @ input + bias  ← bias가 브로드캐스팅
+    println!("실제 패턴: output = W·x + bias");
+    let w = vec![
+        vec![1.0, 0.0, 0.0],
+        vec![0.0, 1.0, 0.0],
+    ]; // (2, 3) — 가중치
+    let x = vec![vec![1.0], vec![2.0], vec![3.0]]; // (3, 1) — 입력
+    let b = vec![vec![0.5], vec![0.5]];             // (2, 1) — bias
+ 
+    let wx = matmul(&w, &x); // (2,3)·(3,1) = (2,1)
+    let out = mat_add(&wx, &b);
+    println!("  W·x:");
+    print_matrix(&wx);
+    println!("  W·x + bias:");
+    print_matrix(&out);
+    println!();
+}
+
 // ================================================================
 // 헬퍼 함수들 — 실제 구현부
 // ================================================================
@@ -262,5 +313,26 @@ fn transpose(a: &Vec<Vec<f64>>) -> Vec<Vec<f64>> {
     let cols = a[0].len();
     (0..cols)
         .map(|j| (0..rows).map(|i| a[i][j]).collect())
+        .collect()
+}
+
+/// 브로드캐스팅: 행렬 + 스칼라
+fn broadcast_scalar_add(a: &Vec<Vec<f64>>, s: f64) -> Vec<Vec<f64>> {
+    a.iter()
+        .map(|row| row.iter().map(|x| x + s).collect())
+        .collect()
+}
+ 
+/// 브로드캐스팅: 행렬 + 행벡터 (각 행에 더하기)
+fn broadcast_row_add(a: &Vec<Vec<f64>>, v: &Vec<f64>) -> Vec<Vec<f64>> {
+    a.iter()
+        .map(|row| row.iter().zip(v.iter()).map(|(x, b)| x + b).collect())
+        .collect()
+}
+ 
+/// 브로드캐스팅: 행렬 + 열벡터 (각 열에 더하기)
+fn broadcast_col_add(a: &Vec<Vec<f64>>, v: &Vec<f64>) -> Vec<Vec<f64>> {
+    a.iter().zip(v.iter())
+        .map(|(row, b)| row.iter().map(|x| x + b).collect())
         .collect()
 }
