@@ -7,6 +7,7 @@ fn main() {
     ex2_numerical_diff();
     ex3_partial_derivative();
     ex4_gradient();
+    ex5_chain_rule();
 }
 
 // ────────────────────────────────────────────
@@ -164,6 +165,56 @@ fn ex4_gradient() {
         y -= lr * gy;
     }
     println!("  → (0, 0) 으로 수렴!\n");
+}
+
+// ────────────────────────────────────────────
+// 실습 5: 연쇄 법칙 (Chain Rule)
+// ────────────────────────────────────────────
+fn ex5_chain_rule() {
+    println!("── 실습 5: 연쇄 법칙 ──\n");
+ 
+    // h(x) = f(g(x))  →  h'(x) = f'(g(x)) · g'(x)
+    //
+    // 예: h(x) = (x² + 1)³
+    //   g(x) = x²+1   g'(x) = 2x
+    //   f(u) = u³     f'(u) = 3u²
+    //   h'(x) = 3(x²+1)² · 2x
+ 
+    println!("h(x) = (x² + 1)³");
+    println!("  h'(x) = 3(x²+1)² · 2x   (연쇄 법칙)\n");
+ 
+    let g  = |x: f64| x * x + 1.0;
+    let gp = |x: f64| 2.0 * x;
+    let fp = |u: f64| 3.0 * u.powi(2);
+    let h  = |x: f64| g(x).powi(3);
+    let hp = |x: f64| fp(g(x)) * gp(x); // 연쇄 법칙
+ 
+    println!("{:<6} {:>12} {:>12} {:>8}", "x", "수치미분", "연쇄법칙", "오차");
+    println!("{}", "-".repeat(42));
+    for &x in &[-2.0_f64, -1.0, 0.0, 1.0, 2.0] {
+        let num = numerical_diff(h, x);
+        let cha = hp(x);
+        println!("{:<6.1} {:>12.6} {:>12.6} {:>8.2e}", x, num, cha, (num-cha).abs());
+    }
+ 
+    // 역전파 연결: 3단 합성
+    println!("\n3단 합성: h(x) = exp(sin(x²)) at x=π/4");
+    let x  = std::f64::consts::PI / 4.0;
+    let z1 = x * x;
+    let z2 = z1.sin();
+    // z3 = z2.exp()
+    let dz3_dz2 = z2.exp();
+    let dz2_dz1 = z1.cos();
+    let dz1_dx  = 2.0 * x;
+    let chain3  = dz3_dz2 * dz2_dz1 * dz1_dx;
+    let num3    = numerical_diff(|t| (t*t).sin().exp(), x);
+    println!("  역전파: {:.6}  수치미분: {:.6}  오차: {:.2e}\n",
+        chain3, num3, (chain3-num3).abs());
+ 
+    println!("역전파 핵심:");
+    println!("  Loss = f3(f2(f1(x)))");
+    println!("  ∂Loss/∂x = (∂f3/∂f2) · (∂f2/∂f1) · (∂f1/∂x)");
+    println!("           = 연쇄 법칙을 레이어 수만큼 반복\n");
 }
 
 // ================================================================
