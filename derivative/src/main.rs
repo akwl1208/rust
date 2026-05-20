@@ -5,6 +5,7 @@ fn main() {
  
     ex1_derivative_intuition();
     ex2_numerical_diff();
+    ex3_partial_derivative();
 }
 
 // ────────────────────────────────────────────
@@ -91,6 +92,42 @@ fn ex2_numerical_diff() {
         println!("  {name:<10} at x={x}: 수치={num:.6}  해석={ana:.6}");
     }
     println!();
+}
+
+// ────────────────────────────────────────────
+// 실습 3: 편미분
+// ────────────────────────────────────────────
+fn ex3_partial_derivative() {
+    println!("── 실습 3: 편미분 ──\n");
+ 
+    // f(x, y) = x²y
+    //   ∂f/∂x = 2xy   (y 상수 취급)
+    //   ∂f/∂y = x²    (x 상수 취급)
+ 
+    let f = |x: f64, y: f64| x * x * y;
+ 
+    println!("f(x, y) = x²y");
+    println!("  ∂f/∂x = 2xy   (y 고정)");
+    println!("  ∂f/∂y = x²    (x 고정)\n");
+ 
+    println!("{:<5} {:<5} {:>12} {:>12} {:>12} {:>12}",
+        "x", "y", "∂f/∂x(수치)", "∂f/∂x(해석)", "∂f/∂y(수치)", "∂f/∂y(해석)");
+    println!("{}", "-".repeat(58));
+ 
+    for &(x, y) in &[(1.0_f64, 2.0), (2.0, 3.0), (-1.0, 2.0), (3.0, -1.0)] {
+        let dfdx_num = numerical_diff(|t| f(t, y), x);
+        let dfdy_num = numerical_diff(|t| f(x, t), y);
+        let dfdx_ana = 2.0 * x * y;
+        let dfdy_ana = x * x;
+        println!("{:<5.1} {:<5.1} {:>12.6} {:>12.6} {:>12.6} {:>12.6}",
+            x, y, dfdx_num, dfdx_ana, dfdy_num, dfdy_ana);
+    }
+ 
+    println!("\n직관 (x=2, y=3):");
+    println!("  ∂f/∂x = 2×2×3 = {}  → x를 0.1 늘리면 f는 약 {} 증가",
+        2.0*2.0*3.0, 2.0*2.0*3.0*0.1);
+    println!("  ∂f/∂y = 2²    = {}    → y를 0.1 늘리면 f는 약 {} 증가\n",
+        4.0, 4.0*0.1);
 }
 
 // ================================================================

@@ -1,0 +1,6 @@
+   0.006565942s  INFO prepare_target{force=false package_id=derivative v0.1.0 (/mnt/rust/projects/derivative) target="derivative"}: cargo::core::compiler::fingerprint: fingerprint dirty for derivative v0.1.0 (/mnt/rust/projects/derivative)/Check { test: false }/TargetInner { name: "derivative", doc: true, ..: with_path("/mnt/rust/projects/derivative/src/main.rs", Edition2024) }
+   0.006580300s  INFO prepare_target{force=false package_id=derivative v0.1.0 (/mnt/rust/projects/derivative) target="derivative"}: cargo::core::compiler::fingerprint:     dirty: NothingObvious
+   0.006667239s  INFO prepare_target{force=false package_id=derivative v0.1.0 (/mnt/rust/projects/derivative) target="derivative"}: cargo::core::compiler::fingerprint: fingerprint dirty for derivative v0.1.0 (/mnt/rust/projects/derivative)/Check { test: true }/TargetInner { name: "derivative", doc: true, ..: with_path("/mnt/rust/projects/derivative/src/main.rs", Edition2024) }
+   0.006670695s  INFO prepare_target{force=false package_id=derivative v0.1.0 (/mnt/rust/projects/derivative) target="derivative"}: cargo::core::compiler::fingerprint:     dirty: NothingObvious
+    Checking derivative v0.1.0 (/mnt/rust/projects/derivative)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.94s
