@@ -6,6 +6,7 @@ fn main() {
     ex1_derivative_intuition();
     ex2_numerical_diff();
     ex3_partial_derivative();
+    ex4_gradient();
 }
 
 // ────────────────────────────────────────────
@@ -130,6 +131,41 @@ fn ex3_partial_derivative() {
         4.0, 4.0*0.1);
 }
 
+// ────────────────────────────────────────────
+// 실습 4: 기울기(Gradient)
+// ────────────────────────────────────────────
+fn ex4_gradient() {
+    println!("── 실습 4: 기울기(Gradient) ──\n");
+ 
+    // f(x, y) = x² + y²  (그릇 모양, 최솟값은 (0,0))
+    // ∇f = [∂f/∂x, ∂f/∂y] = [2x, 2y]
+ 
+    let f = |x: f64, y: f64| x * x + y * y;
+ 
+    println!("f(x, y) = x² + y²   최솟값: (0, 0)\n");
+    println!("{:<12} {:>8} {:>18}", "점 (x,y)", "f값", "gradient [∂x, ∂y]");
+    println!("{}", "-".repeat(42));
+    for &(x, y) in &[(2.0_f64,1.0), (1.0,2.0), (-1.0,-1.0), (0.1,0.1)] {
+        let [gx, gy] = gradient_2d(f, x, y);
+        println!("({x:4.1}, {y:4.1})   {:8.3}   [{:6.3}, {:6.3}]", f(x,y), gx, gy);
+    }
+ 
+    // 경사하강법
+    println!("\n경사하강법 (학습률=0.2):");
+    println!("{:<5} {:>8} {:>8} {:>10}", "step", "x", "y", "f(x,y)");
+    println!("{}", "-".repeat(35));
+    let mut x = 3.0_f64;
+    let mut y = 2.0_f64;
+    let lr    = 0.2_f64;
+    for step in 0..=8 {
+        println!("{:<5} {:>8.4} {:>8.4} {:>10.4}", step, x, y, f(x,y));
+        let [gx, gy] = gradient_2d(f, x, y);
+        x -= lr * gx;
+        y -= lr * gy;
+    }
+    println!("  → (0, 0) 으로 수렴!\n");
+}
+
 // ================================================================
 // 헬퍼 함수
 // ================================================================
@@ -142,4 +178,12 @@ fn numerical_diff<F: Fn(f64) -> f64>(f: F, x: f64) -> f64 {
 /// 수치 미분 — h 직접 지정
 fn numerical_diff_h<F: Fn(f64) -> f64>(f: F, x: f64, h: f64) -> f64 {
     (f(x + h) - f(x - h)) / (2.0 * h)
+}
+
+/// 2변수 gradient [∂f/∂x, ∂f/∂y]
+fn gradient_2d<F: Fn(f64, f64) -> f64>(f: F, x: f64, y: f64) -> [f64; 2] {
+    [
+        numerical_diff(|t| f(t, y), x),
+        numerical_diff(|t| f(x, t), y),
+    ]
 }
