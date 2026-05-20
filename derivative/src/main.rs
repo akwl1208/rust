@@ -8,6 +8,7 @@ fn main() {
     ex3_partial_derivative();
     ex4_gradient();
     ex5_chain_rule();
+    ex6_backprop_preview();
 }
 
 // ────────────────────────────────────────────
@@ -215,6 +216,36 @@ fn ex5_chain_rule() {
     println!("  Loss = f3(f2(f1(x)))");
     println!("  ∂Loss/∂x = (∂f3/∂f2) · (∂f2/∂f1) · (∂f1/∂x)");
     println!("           = 연쇄 법칙을 레이어 수만큼 반복\n");
+}
+
+// ────────────────────────────────────────────
+// 실습 6: 역전파 미리보기 — 가장 단순한 신경망
+// ────────────────────────────────────────────
+fn ex6_backprop_preview() {
+    println!("── 실습 6: 역전파 미리보기 ──\n");
+ 
+    // y = w·x   L = (y - target)²
+    // ∂L/∂w = 2(y - target) · x   (연쇄 법칙 적용)
+ 
+    let x      = 2.0_f64;
+    let target = 6.0_f64;
+    let lr     = 0.1_f64;
+    let mut w  = 0.5_f64;
+ 
+    println!("y = w·x   L = (y - target)²");
+    println!("∂L/∂w = 2(y-target)·x");
+    println!("목표: w → {}  ({}×{} = {})\n", target/x, target/x, x, target);
+ 
+    println!("{:<5} {:>8} {:>8} {:>10} {:>10}", "step", "w", "y", "L", "∂L/∂w");
+    println!("{}", "-".repeat(45));
+    for step in 0..=10 {
+        let y    = w * x;
+        let loss = (y - target).powi(2);
+        let grad = 2.0 * (y - target) * x;
+        println!("{:<5} {:>8.4} {:>8.4} {:>10.4} {:>10.4}", step, w, y, loss, grad);
+        w -= lr * grad;
+    }
+    println!("  → w = {w:.4}  ({} 으로 수렴)\n", target/x);
 }
 
 // ================================================================
