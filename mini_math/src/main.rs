@@ -8,6 +8,7 @@ fn main() {
     part3_cross_entropy();    // 크로스 엔트로피
     part4_numerical_diff();   // 수치 미분 (Day 36-37의 핵심 새 개념)
     part5_chain_rule();       // 연쇄 법칙 + 수치 검증
+    part6_mini_forward();     // 전체 연결: 선형층 → softmax → CE
 }
 
 // ================================================================
@@ -188,6 +189,61 @@ fn part5_chain_rule() {
 }
 
 // ================================================================
+// Part 6: 전체 연결 — 미니 순전파 (선형층 → softmax → CE)
+// ================================================================
+//
+// LLM 한 스텝의 축소판입니다:
+//   입력 x  →  W·x + b (선형층, 행렬 곱)  →  logits
+//          →  softmax  →  확률  →  cross-entropy  →  Loss
+//
+// 그리고 "W를 살짝 바꾸면 Loss가 얼마나 바뀌나" 를 수치 미분으로 확인합니다.
+// 이게 바로 다음 주(Week 6) 경사하강법이 사용하는 정보입니다.
+ 
+fn part6_mini_forward() {
+    println!("── Part 6: 미니 순전파 (선형층→softmax→CE) ──\n");
+ 
+    // 입력 벡터 (특징 2개)
+    let x = vec![1.0, 2.0];
+ 
+    // 가중치 W: 3개 출력(클래스) × 2개 입력 = 3×2 행렬
+    let w = vec![
+        vec![0.5, -0.3],
+        vec![0.1,  0.8],
+        vec![-0.4, 0.2],
+    ];
+    let b = vec![0.0, 0.0, 0.0]; // 편향
+    let target = 1; // 정답 클래스 = 1번
+ 
+    // 순전파를 하나의 클로저로 묶기 (Loss 반환)
+    let forward = |w: &[Vec<f64>]| {
+        let logits = linear(w, &b, &x); // W·x + b
+        let probs = softmax(&logits);
+        cross_entropy(&probs, target)
+    };
+ 
+    let logits = linear(&w, &b, &x);
+    let probs = softmax(&logits);
+    let loss = cross_entropy(&probs, target);
+ 
+    println!("입력 x = {:?}", x);
+    println!("logits (W·x+b) = {:?}",
+        logits.iter().map(|v| format!("{v:.3}")).collect::<Vec<_>>());
+    println!("확률 = {:?}",
+        probs.iter().map(|v| format!("{v:.4}")).collect::<Vec<_>>());
+    println!("정답 클래스 = {target},  Loss = {loss:.4}\n");
+ 
+    // W의 각 원소를 살짝 흔들어 Loss의 기울기 구하기 (수치 미분)
+    println!("∂Loss/∂W (수치 미분, 각 가중치의 기울기):");
+    let grad_w = numerical_gradient_matrix(&forward, &w);
+    for (i, row) in grad_w.iter().enumerate() {
+        let formatted: Vec<String> = row.iter().map(|v| format!("{v:>8.4}")).collect();
+        println!("  행{i}: [{}]", formatted.join(", "));
+    }
+    println!("\n→ 이 기울기의 반대 방향으로 W를 조금씩 옮기면 Loss가 줄어듦");
+    println!("  W_new = W - 학습률 × 기울기   ← 이것이 경사하강법 (Week 6)\n");
+}
+
+// ================================================================
 // 라이브러리 함수들 (numpy 없이 직접 구현)
 // ================================================================
 
@@ -244,7 +300,7 @@ fn numerical_diff<F: Fn(f64) -> f64>(f: F, x: f64) -> f64 {
     let h = 1e-5;
     (f(x + h) - f(x - h)) / (2.0 * h)
 }
- 
+
 /// 수치 기울기(벡터 입력): 각 변수마다 하나씩 편미분
 fn numerical_gradient<F: Fn(&[f64]) -> f64>(f: &F, x: &[f64]) -> Vec<f64> {
     let h = 1e-5;
@@ -255,6 +311,35 @@ fn numerical_gradient<F: Fn(&[f64]) -> f64>(f: &F, x: &[f64]) -> Vec<f64> {
         xp[i] += h;
         xm[i] -= h;
         grad[i] = (f(&xp) - f(&xm)) / (2.0 * h);
+    }
+    grad
+}
+
+/// 선형층: y = W·x + b
+///   W: (출력 × 입력) 행렬,  x: 입력 벡터,  b: 편향 벡터
+fn linear(w: &[Vec<f64>], b: &[f64], x: &[f64]) -> Vec<f64> {
+    w.iter()
+        .zip(b.iter())
+        .map(|(row, &bias)| {
+            let dot: f64 = row.iter().zip(x.iter()).map(|(&wi, &xi)| wi * xi).sum();
+            dot + bias
+        })
+        .collect()
+}
+
+/// 수치 기울기(행렬 입력): 행렬의 각 원소마다 편미분
+/// 순전파(Loss) 함수를 받아 ∂Loss/∂W 를 행렬로 반환
+fn numerical_gradient_matrix<F: Fn(&[Vec<f64>]) -> f64>(f: &F, w: &[Vec<f64>]) -> Matrix {
+    let h = 1e-5;
+    let mut grad = vec![vec![0.0; w[0].len()]; w.len()];
+    for i in 0..w.len() {
+        for j in 0..w[0].len() {
+            let mut wp = w.to_vec();
+            let mut wm = w.to_vec();
+            wp[i][j] += h;
+            wm[i][j] -= h;
+            grad[i][j] = (f(&wp) - f(&wm)) / (2.0 * h);
+        }
     }
     grad
 }
