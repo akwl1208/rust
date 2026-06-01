@@ -7,6 +7,7 @@ fn main() {
     ex2_softmax();
     ex3_softmax_temperature();
     ex4_cross_entropy();
+    ex5_log_likelihood();
 }
 
 // ────────────────────────────────────────────
@@ -223,6 +224,87 @@ fn ex4_cross_entropy() {
 
     println!("Loss 비교: {loss_good:.4} (A)  vs  {loss_bad:.4} (B)");
     println!("학습 = Loss를 A처럼 줄여나가는 과정\n");
+}
+
+// ────────────────────────────────────────────
+// 실습 5: 로그 가능도 (Log-Likelihood)
+// ────────────────────────────────────────────
+fn ex5_log_likelihood() {
+    println!("── 실습 5: 로그 가능도 ──\n");
+
+    // LLM은 문장 전체의 확률을 최대화하도록 학습합니다.
+    //
+    // 문장 "안녕 하세요" = 토큰 3개
+    // P(문장) = P('안녕') × P('하세요'|'안녕') × P('<끝>'|'안녕 하세요')
+    //
+    // 문제: 확률을 계속 곱하면 숫자가 너무 작아짐
+    //   0.6 × 0.8 × 0.7 × 0.5 × ... → 0.000000001
+    //
+    // 해결: log를 취하면 곱셈 → 덧셈
+    //   log(P(문장)) = log(P1) + log(P2) + log(P3) + ...
+
+    println!("문장 확률 계산: '안녕 하세요'");
+    println!("P(문장) = P('안녕') × P('하세요'|'안녕') × P('<끝>'|...)\n");
+
+    // 각 토큰의 예측 확률 (학습된 모델 기준)
+    let token_probs = vec![
+        ("안녕",  0.05_f64),
+        ("하세요", 0.60),
+        ("<끝>",  0.80),
+    ];
+
+    // 직접 곱하면
+    let joint_prob: f64 = token_probs.iter().map(|(_, p)| p).product();
+    println!("직접 곱셈:");
+    let mut display = String::new();
+    for (i, (token, p)) in token_probs.iter().enumerate() {
+        if i > 0 { display.push_str(" × "); }
+        display.push_str(&format!("P({token})={p}"));
+    }
+    println!("  {display}");
+    println!("  = {joint_prob:.6}  ← 토큰이 많아지면 0에 수렴\n");
+
+    // 로그 가능도
+    let log_likelihood: f64 = token_probs.iter()
+        .map(|(_, p)| p.ln())
+        .sum();
+    println!("로그 가능도 (log 적용 → 곱 → 합):");
+    for (token, p) in &token_probs {
+        println!("  log({p}) = {:.4}  [{token}]", p.ln());
+    }
+    println!("  합계 = {log_likelihood:.4}\n");
+
+    println!("관계: log_likelihood = log({joint_prob:.6}) = {:.4}",
+        joint_prob.ln());
+    println!("  → 같은 값! log는 단조증가 함수이므로");
+    println!("    최대 가능도 = 최소 (-log 가능도) = 최소 크로스 엔트로피\n");
+
+    // 학습 목표 연결
+    println!("학습 목표:");
+    println!("  최대화: log P(문장)     ← 로그 가능도 최대화");
+    println!("  = 최소화: -log P(문장)  ← 크로스 엔트로피 최소화");
+    println!("  → 둘은 같은 말!\n");
+
+    // 학습 과정 시뮬레이션
+    println!("학습 진행에 따른 로그 가능도 변화:");
+    println!("{:<8} {:>12} {:>12}", "학습단계", "정답확률", "Log-Likelihood");
+    println!("{}", "-".repeat(35));
+    let stages = [
+        ("초기",  0.33_f64),  // 3개 토큰 랜덤 = 1/3
+        ("10%",   0.45),
+        ("50%",   0.65),
+        ("90%",   0.80),
+        ("완료",  0.95),
+    ];
+    for (stage, p) in stages {
+        // 3토큰 문장 전체 로그 가능도 근사
+        let ll = 3.0 * p.ln();
+        println!("{stage:<8} {p:>12.2} {ll:>12.4}");
+    }
+    println!("  → 학습 완료로 갈수록 0에 가까워짐 (log(1)=0이 최댓값)\n");
+
+    //문장의 그럴듯함은 토큰 확률의 곱인데, 곱은 컴퓨터에서 0으로 터지니까 
+    //log로 덧셈을 만들고, 그 값을 최대화하는 게 곧 cross-entropy를 최소화하는 LLM 학습 그 자체다.
 }
 
 // ================================================================
