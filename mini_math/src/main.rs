@@ -9,6 +9,7 @@ fn main() {
     part4_numerical_diff();   // 수치 미분 (Day 36-37의 핵심 새 개념)
     part5_chain_rule();       // 연쇄 법칙 + 수치 검증
     part6_mini_forward();     // 전체 연결: 선형층 → softmax → CE
+    run_tests();              // 검산 (손계산 값과 비교)
 }
 
 // ================================================================
@@ -241,6 +242,101 @@ fn part6_mini_forward() {
     }
     println!("\n→ 이 기울기의 반대 방향으로 W를 조금씩 옮기면 Loss가 줄어듦");
     println!("  W_new = W - 학습률 × 기울기   ← 이것이 경사하강법 (Week 6)\n");
+}
+
+// ================================================================
+// 검산 (Tests) — 손으로 계산한 값과 코드 결과 비교
+// ================================================================
+ 
+fn run_tests() {
+    println!("── 검산 (assert로 자동 확인) ──\n");
+    let mut passed = 0;
+    let mut total = 0;
+ 
+    // helper: 거의 같은지 (부동소수점 오차 허용)
+    fn close(a: f64, b: f64) -> bool { (a - b).abs() < 1e-6 }
+ 
+    // Test 1: 행렬 곱
+    total += 1;
+    let a = vec![vec![1.0, 2.0, 3.0], vec![4.0, 5.0, 6.0]];
+    let bmat = vec![vec![7.0, 8.0], vec![9.0, 10.0], vec![11.0, 12.0]];
+    let c = matmul(&a, &bmat);
+    if close(c[0][0], 58.0) && close(c[0][1], 64.0)
+        && close(c[1][0], 139.0) && close(c[1][1], 154.0) {
+        println!("  [PASS] 행렬 곱 = [[58,64],[139,154]]");
+        passed += 1;
+    } else {
+        println!("  [FAIL] 행렬 곱 결과: {:?}", c);
+    }
+ 
+    // Test 2: softmax 합 = 1
+    total += 1;
+    let probs = softmax(&[3.0, 1.0, 0.2]);
+    if close(probs.iter().sum::<f64>(), 1.0) {
+        println!("  [PASS] softmax 합계 = 1.0");
+        passed += 1;
+    } else {
+        println!("  [FAIL] softmax 합계 = {}", probs.iter().sum::<f64>());
+    }
+ 
+    // Test 3: cross-entropy, 정답확률=1 이면 loss≈0
+    total += 1;
+    let perfect = vec![1.0, 0.0, 0.0];
+    let loss = cross_entropy(&perfect, 0);
+    if loss < 1e-4 {
+        println!("  [PASS] CE(정답확률=1) ≈ 0  (실제 {:.6})", loss);
+        passed += 1;
+    } else {
+        println!("  [FAIL] CE = {}", loss);
+    }
+ 
+    // Test 4: 수치 미분  f(x)=x²,  f'(3)=6
+    total += 1;
+    let d = numerical_diff(|x| x * x, 3.0);
+    if (d - 6.0).abs() < 1e-4 {
+        println!("  [PASS] d/dx(x²) at x=3 ≈ 6  (실제 {:.6})", d);
+        passed += 1;
+    } else {
+        println!("  [FAIL] 수치 미분 = {}", d);
+    }
+ 
+    // Test 5: 편미분  f(x,y)=x²y at (2,3) → [12, 4]
+    total += 1;
+    let grad = numerical_gradient(&|v: &[f64]| v[0] * v[0] * v[1], &[2.0, 3.0]);
+    if (grad[0] - 12.0).abs() < 1e-3 && (grad[1] - 4.0).abs() < 1e-3 {
+        println!("  [PASS] ∇(x²y) at (2,3) ≈ [12, 4]  (실제 [{:.3}, {:.3}])",
+            grad[0], grad[1]);
+        passed += 1;
+    } else {
+        println!("  [FAIL] gradient = {:?}", grad);
+    }
+ 
+    // Test 6: 연쇄 법칙  y=(3x+1)², dy/dx at x=2 = 6·7 = 42
+    total += 1;
+    let dc = numerical_diff(|x| { let u = 3.0 * x + 1.0; u * u }, 2.0);
+    if (dc - 42.0).abs() < 1e-3 {
+        println!("  [PASS] d/dx(3x+1)² at x=2 ≈ 42  (실제 {:.4})", dc);
+        passed += 1;
+    } else {
+        println!("  [FAIL] 연쇄 법칙 = {}", dc);
+    }
+ 
+    // Test 7: 전치 두 번 = 원본
+    total += 1;
+    let m = vec![vec![1.0, 2.0, 3.0], vec![4.0, 5.0, 6.0]];
+    let mtt = transpose(&transpose(&m));
+    if m == mtt {
+        println!("  [PASS] (Aᵀ)ᵀ = A");
+        passed += 1;
+    } else {
+        println!("  [FAIL] 전치 두 번이 원본과 다름");
+    }
+ 
+    println!("\n결과: {passed}/{total} 통과");
+    if passed == total {
+        println!("모든 검산 통과! 미니 라이브러리 완성 ✓");
+    }
+    println!();
 }
 
 // ================================================================
