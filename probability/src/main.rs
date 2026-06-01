@@ -9,6 +9,7 @@ fn main() {
     ex4_cross_entropy();
     ex5_log_likelihood();
     ex6_perplexity();
+    ex7_llm_connection();
 }
 
 // ────────────────────────────────────────────
@@ -359,6 +360,66 @@ fn ex6_perplexity() {
         println!("{:>10.1} {:>12.2}", loss, loss.exp());
     }
     println!("  → eval_loss가 낮을수록 PPL도 낮음\n");
+}
+
+// ────────────────────────────────────────────
+// 실습 7: LLM 전체 흐름 연결
+// ────────────────────────────────────────────
+fn ex7_llm_connection() {
+    println!("── 실습 7: LLM 전체 흐름 ──\n");
+
+    // 지금까지 배운 것들이 LLM에서 어떻게 연결되는지 보여줍니다.
+    //
+    // 입력: "안녕" → 모델 → logits → softmax → 확률 → cross_entropy → Loss
+    //                                                                     ↓
+    //                                               역전파로 가중치 업데이트
+
+    println!("LLM 순전파 전체 과정:\n");
+
+    // Step 1: 모델이 logits 출력
+    let vocab = ["하세요", "!", "?", "히", "들"];
+    let logits = vec![3.2_f64, 1.1, 0.8, -0.5, -1.2];
+    println!("Step 1: 모델 출력 (logits) — 아직 확률 아님");
+    for (token, &logit) in vocab.iter().zip(logits.iter()) {
+        println!("  {token:<6} → {logit:6.2}");
+    }
+
+    // Step 2: Softmax → 확률
+    let probs = softmax_stable(&logits);
+    println!("\nStep 2: Softmax → 확률로 변환");
+    for (token, &p) in vocab.iter().zip(probs.iter()) {
+        let bar = "█".repeat((p * 25.0) as usize);
+        println!("  {token:<6} → {p:.4}  {bar}");
+    }
+    println!("  합계: {:.6}", probs.iter().sum::<f64>());
+
+    // Step 3: 정답과 비교 → Cross-Entropy Loss
+    let correct_idx = 0; // '하세요'가 정답
+    let loss = cross_entropy(&probs, correct_idx);
+    println!("\nStep 3: Cross-Entropy Loss");
+    println!("  정답 토큰: '{}'  확률: {:.4}", vocab[correct_idx], probs[correct_idx]);
+    println!("  Loss = -log({:.4}) = {loss:.4}", probs[correct_idx]);
+
+    // Step 4: Loss로 역전파 → 가중치 업데이트
+    println!("\nStep 4: 역전파 → 가중치 업데이트");
+    println!("  Loss({loss:.4})를 줄이는 방향으로 모든 가중치 조정");
+    println!("  (연쇄 법칙 × 수억 개 파라미터)");
+
+    // train.py 연결 요약
+    println!("\n{}", "=".repeat(50));
+    println!("train.py 코드와의 매핑:\n");
+    let mappings = [
+        ("logits 출력",    "model.forward(input_ids)"),
+        ("softmax",        "내부 자동 적용"),
+        ("cross entropy",  "Trainer가 자동 계산"),
+        ("역전파",         "loss.backward()"),
+        ("가중치 업데이트","optimizer.step()"),
+        ("반복",           "trainer.train() 루프"),
+    ];
+    for (concept, code) in &mappings {
+        println!("  {concept:<16} → {code}");
+    }
+    println!();
 }
 
 // ================================================================
