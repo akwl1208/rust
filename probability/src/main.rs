@@ -8,6 +8,7 @@ fn main() {
     ex3_softmax_temperature();
     ex4_cross_entropy();
     ex5_log_likelihood();
+    ex6_perplexity();
 }
 
 // ────────────────────────────────────────────
@@ -305,6 +306,59 @@ fn ex5_log_likelihood() {
 
     //문장의 그럴듯함은 토큰 확률의 곱인데, 곱은 컴퓨터에서 0으로 터지니까 
     //log로 덧셈을 만들고, 그 값을 최대화하는 게 곧 cross-entropy를 최소화하는 LLM 학습 그 자체다.
+}
+
+// ────────────────────────────────────────────
+// 실습 6: 퍼플렉시티 (Perplexity)
+// ────────────────────────────────────────────
+fn ex6_perplexity() {
+    println!("── 실습 6: 퍼플렉시티 (Perplexity) ──\n");
+
+    // Perplexity = LLM 성능 평가 지표
+    //
+    // 공식: PPL = exp(평균 크로스 엔트로피)
+    //           = exp(-1/N × Σ log P(토큰_i))
+    //
+    // 직관: "모델이 다음 토큰을 고를 때 평균적으로 몇 개 중에 고르는 것처럼 헷갈리나"
+    //   PPL=1   → 완벽한 예측 (항상 정답만 확신)
+    //   PPL=10  → 10개 단어 중 하나를 고르는 것처럼 불확실
+    //   PPL=100 → 100개 단어 중 하나 고르는 수준으로 불확실
+
+    println!("PPL = exp(평균 크로스 엔트로피)");
+    println!("낮을수록 좋은 모델\n");
+
+    // 예시 문장의 토큰별 확률
+    let sentences = vec![
+        ("쉬운 문장", vec![0.8_f64, 0.7, 0.9, 0.85]),
+        ("보통 문장", vec![0.5, 0.4, 0.6, 0.55]),
+        ("어려운 문장", vec![0.2, 0.15, 0.3, 0.1]),
+    ];
+
+    println!("{:<12} {:>8} {:>10} {:>12}", "문장 유형", "평균확률", "평균CE", "Perplexity");
+    println!("{}", "-".repeat(45));
+    for (name, probs) in &sentences {
+        let avg_ce  = perplexity_from_probs(probs);
+        let ppl     = avg_ce.exp();
+        let avg_p   = probs.iter().sum::<f64>() / probs.len() as f64;
+        println!("{name:<12} {avg_p:>8.3} {avg_ce:>10.4} {ppl:>12.2}");
+    }
+
+    println!();
+    println!("실제 LLM 퍼플렉시티 비교 (WikiText-103 기준):");
+    println!("  GPT-2 Small  → PPL ≈ 37");
+    println!("  GPT-2 Large  → PPL ≈ 19");
+    println!("  GPT-3        → PPL ≈ 12");
+    println!("  → 모델이 클수록 낮아짐\n");
+
+    // train.py 에서 나오는 val_loss와의 관계
+    println!("train.py 의 eval_loss 와 PPL 관계:");
+    let eval_losses = [3.5_f64, 2.8, 2.2, 1.8, 1.4];
+    println!("{:>10} {:>12}", "eval_loss", "Perplexity");
+    println!("{}", "-".repeat(25));
+    for &loss in &eval_losses {
+        println!("{:>10.1} {:>12.2}", loss, loss.exp());
+    }
+    println!("  → eval_loss가 낮을수록 PPL도 낮음\n");
 }
 
 // ================================================================
