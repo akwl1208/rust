@@ -4,6 +4,7 @@ fn main() {
     println!("================================================\n");
  
     part1_matrix();           // 행렬: 곱·전치
+    part2_softmax();          // 소프트맥스
 }
 
 // ================================================================
@@ -58,6 +59,30 @@ fn part1_matrix() {
 }
 
 // ================================================================
+// Part 2: 소프트맥스 (Day 35 복습 + 라이브러리화)
+// ================================================================
+//
+// logit(점수) → 확률 분포로 변환.
+//   softmax(xᵢ) = exp(xᵢ) / Σ exp(xⱼ)
+// 큰 logit에서 오버플로우를 막기 위해 최댓값을 빼고 계산.
+ 
+fn part2_softmax() {
+    println!("── Part 2: 소프트맥스 ──\n");
+ 
+    let logits = vec![3.0, 1.0, 0.2];
+    let probs = softmax(&logits);
+ 
+    println!("logits = {:?}", logits);
+    print!("softmax = [");
+    for (i, p) in probs.iter().enumerate() {
+        if i > 0 { print!(", "); }
+        print!("{p:.4}");
+    }
+    println!("]");
+    println!("합계 = {:.6}  (반드시 1.0)\n", probs.iter().sum::<f64>());
+}
+
+// ================================================================
 // 라이브러리 함수들 (numpy 없이 직접 구현)
 // ================================================================
 
@@ -94,6 +119,14 @@ fn transpose(a: &[Vec<f64>]) -> Matrix {
         }
     }
     t
+}
+
+/// 소프트맥스 (수치 안정화: 최댓값을 빼고 계산)
+fn softmax(x: &[f64]) -> Vec<f64> {
+    let max = x.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+    let exps: Vec<f64> = x.iter().map(|&v| (v - max).exp()).collect();
+    let sum: f64 = exps.iter().sum();
+    exps.iter().map(|&e| e / sum).collect()
 }
 
 /// 행렬 예쁘게 출력
