@@ -5,6 +5,7 @@ fn main() {
  
     ex1_probability_basics();
     ex2_softmax();
+    ex3_softmax_temperature();
 }
 
 // ────────────────────────────────────────────
@@ -119,6 +120,49 @@ fn ex2_softmax() {
     let stable_probs = softmax_stable(&big_logits);
     println!("  안정화: 최댓값(1000)을 빼면 [0, -1, -2]");
     println!("  결과: {:?}\n", stable_probs.iter().map(|x| format!("{x:.4}")).collect::<Vec<_>>());
+}
+
+
+// ────────────────────────────────────────────
+// 실습 3: 소프트맥스 Temperature
+// ────────────────────────────────────────────
+fn ex3_softmax_temperature() {
+    println!("── 실습 3: Temperature — 확률 분포 조절 ──\n");
+
+    // LLM 추론 시 temperature 파라미터가 있습니다.
+    // softmax(x / T) 로 계산합니다.
+    //
+    // T < 1.0 → 확률 차이가 커짐 → 확실한 답만 고름 (결정적)
+    // T = 1.0 → 기본값
+    // T > 1.0 → 확률 차이가 줄어듦 → 다양한 답 가능 (창의적)
+
+    let logits = vec![3.0_f64, 1.0, 0.2];
+    let tokens = ["하세요", "!", "?"];
+    let temperatures = [0.3_f64, 0.7, 1.0, 1.5, 2.0];
+
+    println!("logits = {:?}\n", logits);
+    println!("{:<6} {:>10} {:>10} {:>10}  설명",
+        "T", tokens[0], tokens[1], tokens[2]);
+    println!("{}", "-".repeat(65));
+
+    for &t in &temperatures {
+        let scaled: Vec<f64> = logits.iter().map(|&x| x / t).collect();
+        let probs = softmax_stable(&scaled);
+        let desc = match t as i32 {
+            0 => "거의 항상 '하세요'만 선택",
+            1 => "기본값",
+            2 => "다양한 토큰 선택 가능",
+            _ => if t < 1.0 { "결정적" } else { "창의적" },
+        };
+        println!("T={t:<5} {:>10.4} {:>10.4} {:>10.4}  {desc}",
+            probs[0], probs[1], probs[2]);
+    }
+    println!();
+
+    println!("실제 LLM 사용 예:");
+    println!("  temperature=0.1 → 코드 생성, 번역 (정확성 중요)");
+    println!("  temperature=1.0 → 일반 대화");
+    println!("  temperature=1.5 → 창작, 소설 쓰기 (다양성 중요)\n");
 }
 
 // ================================================================
