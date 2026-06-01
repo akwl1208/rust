@@ -6,6 +6,7 @@ fn main() {
     ex1_probability_basics();
     ex2_softmax();
     ex3_softmax_temperature();
+    ex4_cross_entropy();
 }
 
 // ────────────────────────────────────────────
@@ -122,7 +123,6 @@ fn ex2_softmax() {
     println!("  결과: {:?}\n", stable_probs.iter().map(|x| format!("{x:.4}")).collect::<Vec<_>>());
 }
 
-
 // ────────────────────────────────────────────
 // 실습 3: 소프트맥스 Temperature
 // ────────────────────────────────────────────
@@ -163,6 +163,66 @@ fn ex3_softmax_temperature() {
     println!("  temperature=0.1 → 코드 생성, 번역 (정확성 중요)");
     println!("  temperature=1.0 → 일반 대화");
     println!("  temperature=1.5 → 창작, 소설 쓰기 (다양성 중요)\n");
+}
+
+// ────────────────────────────────────────────
+// 실습 4: 크로스 엔트로피 (Cross-Entropy)
+// ────────────────────────────────────────────
+fn ex4_cross_entropy() {
+    println!("── 실습 4: 크로스 엔트로피 ──\n");
+
+    // 크로스 엔트로피 = "예측이 정답과 얼마나 다른가"
+    //
+    // 공식: L = -log(정답 토큰의 예측 확률)
+    //
+    // 직관:
+    //   정답 확률이 1.0 → L = -log(1.0) = 0.0    (완벽)
+    //   정답 확률이 0.5 → L = -log(0.5) = 0.693  (나쁨)
+    //   정답 확률이 0.1 → L = -log(0.1) = 2.303  (매우 나쁨)
+    //   정답 확률이 0.0 → L = -log(0.0) = ∞      (완전 틀림)
+
+    println!("L = -log(정답 토큰의 확률)");
+    println!("  확률이 높을수록 Loss가 작음\n");
+
+    println!("{:>10} {:>12}", "정답 확률", "Cross-Entropy Loss");
+    println!("{}", "-".repeat(25));
+    for &p in &[1.0_f64, 0.9, 0.7, 0.5, 0.3, 0.1, 0.01] {
+        let loss = -p.ln();
+        let bar = "▓".repeat((loss * 5.0).min(30.0) as usize);
+        println!("{:>10.2} {:>12.4}  {bar}", p, loss);
+    }
+    println!();
+
+    // 실제 예시: 문장 "안녕 하세요"
+    // 모델이 '하세요'를 얼마나 잘 예측했는가?
+
+    println!("예시: 정답 토큰 = '하세요'\n");
+
+    // 케이스 A: 잘 학습된 모델
+    let logits_good = vec![3.0_f64, 0.5, 0.1];
+    let probs_good  = softmax_stable(&logits_good);
+    let loss_good   = cross_entropy(&probs_good, 0); // 정답 인덱스 = 0
+    println!("케이스 A (잘 학습된 모델):");
+    println!("  logits = {:?}", logits_good);
+    println!("  probs  = [{:.4}, {:.4}, {:.4}]",
+        probs_good[0], probs_good[1], probs_good[2]);
+    println!("  '하세요' 확률 = {:.4}", probs_good[0]);
+    println!("  Loss = -log({:.4}) = {loss_good:.4}\n", probs_good[0]);
+
+    // 케이스 B: 학습 초기 (모든 logit이 비슷)
+    let logits_bad = vec![0.1_f64, 0.05, 0.08];
+    let probs_bad  = softmax_stable(&logits_bad);
+    let loss_bad   = cross_entropy(&probs_bad, 0);
+    println!("케이스 B (학습 초기, 랜덤에 가까움):");
+    println!("  logits = {:?}", logits_bad);
+    println!("  probs  = [{:.4}, {:.4}, {:.4}]",
+        probs_bad[0], probs_bad[1], probs_bad[2]);
+    println!("  '하세요' 확률 = {:.4}", probs_bad[0]);
+    println!("  Loss = -log({:.4}) = {loss_bad:.4}", probs_bad[0]);
+    println!();
+
+    println!("Loss 비교: {loss_good:.4} (A)  vs  {loss_bad:.4} (B)");
+    println!("학습 = Loss를 A처럼 줄여나가는 과정\n");
 }
 
 // ================================================================
