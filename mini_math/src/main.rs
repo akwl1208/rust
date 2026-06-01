@@ -6,6 +6,7 @@ fn main() {
     part1_matrix();           // 행렬: 곱·전치
     part2_softmax();          // 소프트맥스
     part3_cross_entropy();    // 크로스 엔트로피
+    part4_numerical_diff();   // 수치 미분 (Day 36-37의 핵심 새 개념)
 }
 
 // ================================================================
@@ -103,6 +104,53 @@ fn part3_cross_entropy() {
 }
 
 // ================================================================
+// Part 4: 수치 미분 (★ Day 36-37의 핵심 새 개념)
+// ================================================================
+//
+// 미분 = "입력을 아주 조금 바꾸면 출력이 얼마나 바뀌나" (= 기울기)
+//
+// 정의:  f'(x) = lim(h→0) [f(x+h) - f(x)] / h
+//
+// 컴퓨터는 h를 0으로 보낼 수 없으니, 아주 작은 h를 대입해 근사합니다.
+// 이를 '수치 미분(numerical differentiation)' 이라 합니다.
+//
+// 더 정확한 방법: 중심차분 (central difference)
+//   f'(x) ≈ [f(x+h) - f(x-h)] / (2h)
+//   → 앞뒤로 똑같이 보기 때문에 오차가 훨씬 작음.
+ 
+fn part4_numerical_diff() {
+    println!("── Part 4: 수치 미분 (★ 새 개념) ──\n");
+ 
+    // 예제 1: f(x) = x²  →  해석적 미분 f'(x) = 2x
+    let f = |x: f64| x * x;
+ 
+    println!("f(x) = x²,  해석적 미분 f'(x) = 2x\n");
+    println!("{:>5} {:>14} {:>14} {:>10}", "x", "수치 미분", "정답(2x)", "오차");
+    println!("{}", "-".repeat(46));
+    for &x in &[1.0, 2.0, 3.0, 5.0] {
+        let approx = numerical_diff(f, x);
+        let exact = 2.0 * x;
+        println!("{x:>5.1} {approx:>14.6} {exact:>14.6} {:>10.2e}",
+            (approx - exact).abs());
+    }
+    println!("→ h가 작을수록 정답에 근접 (중심차분 사용)\n");
+ 
+    // 예제 2: 편미분 — 여러 변수 중 하나만 살짝 흔들기
+    //   f(x, y) = x²·y
+    //   ∂f/∂x = 2xy,   ∂f/∂y = x²
+    println!("편미분: f(x,y) = x²·y  at (x=2, y=3)");
+    let g = |v: &[f64]| v[0] * v[0] * v[1];
+    let point = vec![2.0, 3.0];
+    let grad = numerical_gradient(&g, &point);
+ 
+    println!("  ∂f/∂x ≈ {:.4}  (정답 2xy = 2·2·3 = 12)", grad[0]);
+    println!("  ∂f/∂y ≈ {:.4}  (정답 x²  = 2²    = 4)", grad[1]);
+    println!("  gradient = {:?}",
+        grad.iter().map(|v| format!("{v:.2}")).collect::<Vec<_>>());
+    println!("→ gradient = '어느 방향으로 가야 함수가 가장 빨리 커지나'\n");
+}
+
+// ================================================================
 // 라이브러리 함수들 (numpy 없이 직접 구현)
 // ================================================================
 
@@ -152,6 +200,26 @@ fn softmax(x: &[f64]) -> Vec<f64> {
 /// 크로스 엔트로피: L = -log(정답 인덱스의 확률)
 fn cross_entropy(probs: &[f64], target: usize) -> f64 {
     -(probs[target] + 1e-10).ln() // log(0) = -∞ 방지용 작은 값
+}
+
+/// 수치 미분 (중심차분): f'(x) ≈ [f(x+h) - f(x-h)] / (2h)
+fn numerical_diff<F: Fn(f64) -> f64>(f: F, x: f64) -> f64 {
+    let h = 1e-5;
+    (f(x + h) - f(x - h)) / (2.0 * h)
+}
+ 
+/// 수치 기울기(벡터 입력): 각 변수마다 하나씩 편미분
+fn numerical_gradient<F: Fn(&[f64]) -> f64>(f: &F, x: &[f64]) -> Vec<f64> {
+    let h = 1e-5;
+    let mut grad = vec![0.0; x.len()];
+    for i in 0..x.len() {
+        let mut xp = x.to_vec();
+        let mut xm = x.to_vec();
+        xp[i] += h;
+        xm[i] -= h;
+        grad[i] = (f(&xp) - f(&xm)) / (2.0 * h);
+    }
+    grad
 }
 
 /// 행렬 예쁘게 출력
