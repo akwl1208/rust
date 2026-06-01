@@ -5,6 +5,7 @@ fn main() {
  
     part1_matrix();           // 행렬: 곱·전치
     part2_softmax();          // 소프트맥스
+    part3_cross_entropy();    // 크로스 엔트로피
 }
 
 // ================================================================
@@ -83,6 +84,25 @@ fn part2_softmax() {
 }
 
 // ================================================================
+// Part 3: 크로스 엔트로피 (Day 35 복습 + 라이브러리화)
+// ================================================================
+//
+// 정답이 one-hot 일 때: L = -log(정답 토큰의 예측 확률)
+ 
+fn part3_cross_entropy() {
+    println!("── Part 3: 크로스 엔트로피 ──\n");
+ 
+    let logits = vec![3.0, 1.0, 0.2];
+    let probs = softmax(&logits);
+    let target = 0; // 정답 = 0번 토큰
+ 
+    let loss = cross_entropy(&probs, target);
+    println!("probs = [{:.4}, {:.4}, {:.4}]", probs[0], probs[1], probs[2]);
+    println!("정답 인덱스 = {target},  확률 = {:.4}", probs[target]);
+    println!("Loss = -log({:.4}) = {:.4}\n", probs[target], loss);
+}
+
+// ================================================================
 // 라이브러리 함수들 (numpy 없이 직접 구현)
 // ================================================================
 
@@ -127,6 +147,11 @@ fn softmax(x: &[f64]) -> Vec<f64> {
     let exps: Vec<f64> = x.iter().map(|&v| (v - max).exp()).collect();
     let sum: f64 = exps.iter().sum();
     exps.iter().map(|&e| e / sum).collect()
+}
+
+/// 크로스 엔트로피: L = -log(정답 인덱스의 확률)
+fn cross_entropy(probs: &[f64], target: usize) -> f64 {
+    -(probs[target] + 1e-10).ln() // log(0) = -∞ 방지용 작은 값
 }
 
 /// 행렬 예쁘게 출력
