@@ -8,6 +8,7 @@ fn main() {
     part3_cross_entropy();
     part4_gradient_descent();
     part5_learning_rate_experiment();   // 핵심 실습 1
+    part6_batch_vs_sgd();               // 핵심 실습 2
 }
 
 // ================================================================
@@ -200,6 +201,88 @@ fn part5_learning_rate_experiment() {
     println!("  lr=0.01 : 깔끔하게 골짜기 도착 (w~2, b~1)");
     println!("  lr=0.1  : 골짜기를 건너뛰고 점점 멀어짐 -> 숫자 폭발(발산)");
     println!("  => 학습률은 '너무 작지도 크지도 않게' 맞추는 게 핵심\n");
+}
+
+// ================================================================
+// Part 6: Batch vs Mini-batch vs SGD (★ 핵심 실습)
+// ================================================================
+//
+// 기울기를 '데이터 몇 개로' 계산하느냐의 차이.
+//
+//   [Batch GD] 전체 데이터로 기울기 계산 후 한 번 업데이트
+//     + 안정적이고 정확한 방향
+//     - 데이터 많으면 한 걸음이 너무 느리고 무거움
+//
+//   [SGD (Stochastic)] 데이터 1개로 기울기 계산, 매번 업데이트
+//     + 매우 빠르고 자주 업데이트
+//     - 방향이 들쭉날쭉(노이즈 많음) -> 하지만 그 덕에 얕은 골짜기 탈출도
+//
+//   [Mini-batch] 일부(예: 4개, 32개)로 계산 -> 둘의 절충
+//     + 적당히 안정적 + 적당히 빠름 + GPU 효율 좋음
+//     => 실무 딥러닝의 표준 (보통 32~256개)
+//
+// 세 방식 모두 결국 같은 골짜기로 수렴한다. 가는 길이 다를 뿐.
+ 
+fn part6_batch_vs_sgd() {
+    println!("-- Part 6: Batch vs Mini-batch vs SGD --\n");
+ 
+    println!("차이 = '기울기를 데이터 몇 개로 계산하느냐'");
+    println!("  Batch     : 전체로 계산 -> 안정적이나 무거움");
+    println!("  SGD        : 1개로 계산  -> 빠르나 방향이 들쭉날쭉");
+    println!("  Mini-batch : 일부로 계산 -> 절충 (실무 표준, 보통 32~256)");
+    println!();
+ 
+    let data = sample_data_large(); // 12개 데이터
+    let lr = 0.005;
+    let epochs = 200;
+ 
+    // Batch GD
+    let (bw, bb) = {
+        let (mut w, mut b) = (0.0, 0.0);
+        for _ in 0..epochs {
+            let (dw, db) = gradient(&data, w, b);
+            w -= lr * dw;
+            b -= lr * db;
+        }
+        (w, b)
+    };
+ 
+    // SGD (1개씩, 순서대로) - seed 없이 순차로 단순화
+    let (sw, sb) = {
+        let (mut w, mut b) = (0.0, 0.0);
+        for _ in 0..epochs {
+            for pt in &data {
+                let (dw, db) = gradient(std::slice::from_ref(pt), w, b);
+                w -= lr * dw;
+                b -= lr * db;
+            }
+        }
+        (w, b)
+    };
+ 
+    // Mini-batch (4개씩)
+    let (mw, mb) = {
+        let (mut w, mut b) = (0.0, 0.0);
+        for _ in 0..epochs {
+            for chunk in data.chunks(4) {
+                let (dw, db) = gradient(chunk, w, b);
+                w -= lr * dw;
+                b -= lr * db;
+            }
+        }
+        (w, b)
+    };
+ 
+    println!("12개 데이터(y=2x+1), {epochs} epoch, lr={lr} 결과:");
+    println!("{:>14} {:>10} {:>10} {:>12}", "방식", "w", "b", "MSE");
+    println!("{}", "-".repeat(48));
+    println!("{:>14} {bw:>10.4} {bb:>10.4} {:>12.6}", "Batch", mse(&data, bw, bb));
+    println!("{:>14} {sw:>10.4} {sb:>10.4} {:>12.6}", "SGD(1개)", mse(&data, sw, sb));
+    println!("{:>14} {mw:>10.4} {mb:>10.4} {:>12.6}", "Mini-batch(4)", mse(&data, mw, mb));
+    println!();
+    println!("-> 세 방식 모두 같은 정답(w~2,b~1)으로 수렴한다.");
+    println!("   '가는 길'이 다를 뿐 도착지는 같다.");
+    println!("   SGD/미니배치는 업데이트가 잦아 큰 데이터에서 훨씬 빠르다.\n");
 }
 
 // ================================================================
