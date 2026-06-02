@@ -6,6 +6,7 @@ fn main() {
     part1_perceptron();
     part2_activations();
     part3_layer();
+    part4_two_layer_network();
 }
 
 // ================================================================
@@ -118,6 +119,57 @@ fn part3_layer() {
         z.iter().map(|v| format!("{v:.2}")).collect::<Vec<_>>());
     println!();
     println!("-> 뉴런 N개 레이어 = 행렬 곱 한 번. 활성화는 그 다음 단계.\n");
+}
+
+fn part4_two_layer_network() {
+    println!("-- Part 4: 2층 신경망 순전파 [3 -> 4 -> 2] (핵심) --\n");
+ 
+    // 입력 (3개)
+    let x = vec![1.0, 2.0, -1.0];
+ 
+    // 은닉층 W1: 4x3, b1: 4
+    let w1 = vec![
+        vec![0.1, 0.2, -0.3],
+        vec![0.4, -0.5, 0.6],
+        vec![-0.7, 0.8, 0.1],
+        vec![0.2, 0.3, -0.4],
+    ];
+    let b1 = vec![0.1, -0.2, 0.3, 0.0];
+ 
+    // 출력층 W2: 2x4, b2: 2
+    let w2 = vec![
+        vec![0.5, -0.6, 0.7, 0.1],
+        vec![-0.2, 0.3, -0.4, 0.8],
+    ];
+    let b2 = vec![0.05, -0.05];
+ 
+    println!("구조: 입력층(3) -> 은닉층(4, ReLU) -> 출력층(2)\n");
+    println!("입력 x = {:?}\n", x);
+ 
+    // === 은닉층 ===
+    println!("[은닉층]");
+    let z1 = linear(&w1, &b1, &x);
+    println!("  z1 = W1@x + b1 = {:?}",
+        z1.iter().map(|v| format!("{v:.3}")).collect::<Vec<_>>());
+    let a1: Vec<f64> = z1.iter().map(|&z| relu(z)).collect();
+    println!("  a1 = ReLU(z1) = {:?}",
+        a1.iter().map(|v| format!("{v:.3}")).collect::<Vec<_>>());
+    println!("  (음수였던 z1 값이 ReLU로 0이 되는 것에 주목)");
+    println!();
+ 
+    // === 출력층 ===
+    println!("[출력층]");
+    let z2 = linear(&w2, &b2, &a1);
+    println!("  z2 = W2@a1 + b2 = {:?}",
+        z2.iter().map(|v| format!("{v:.3}")).collect::<Vec<_>>());
+    println!();
+ 
+    println!("최종 출력: {:?}",
+        z2.iter().map(|v| format!("{v:.3}")).collect::<Vec<_>>());
+    println!();
+    println!("-> 순전파 = (행렬곱 + 편향 + 활성화)를 층마다 반복.");
+    println!("   입력 3개가 은닉층 4개를 거쳐 출력 2개로 변형되었다.");
+    println!("   Transformer도 원리는 동일 — 이 과정이 수십 층 쌓인 것.\n");
 }
 
 // ================================================================
