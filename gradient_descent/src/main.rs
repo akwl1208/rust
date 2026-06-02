@@ -4,6 +4,7 @@ fn main() {
     println!("==================================================\n");
  
     part1_what_is_loss();
+    part2_mse();
 }
 
 // ================================================================
@@ -32,4 +33,78 @@ fn part1_what_is_loss() {
     println!();
     println!("학습의 목표 = 손실을 최소화하는 가중치 찾기");
     println!("문제별 손실:  회귀 -> MSE,  분류/언어모델 -> Cross-Entropy\n");
+}
+
+// ================================================================
+// Part 2: MSE (Mean Squared Error) - 회귀의 손실
+// ================================================================
+//
+//      MSE = (1/N) * sum (예측 - 정답)^2
+//
+//   - 오차를 제곱: 부호 제거 + 큰 오차에 더 큰 벌점
+//   - 회귀(숫자를 맞추는 문제)에서 표준으로 쓰임
+//   - 예: 집값 예측, 온도 예측
+ 
+fn part2_mse() {
+    println!("-- Part 2: MSE - 회귀의 손실 --\n");
+    println!("MSE = (1/N) sum (예측 - 정답)^2\n");
+ 
+    // 정답 vs 두 모델의 예측 비교
+    let targets = [3.0, 5.0, 7.0, 9.0];
+    let good_pred = [3.1, 4.9, 7.2, 8.8]; // 거의 맞음
+    let bad_pred = [1.0, 8.0, 4.0, 12.0]; // 많이 틀림
+ 
+    let mse_good = mse_pairs(&good_pred, &targets);
+    let mse_bad = mse_pairs(&bad_pred, &targets);
+ 
+    println!("정답:        {:?}", targets);
+    println!("좋은 예측:    {:?}  -> MSE = {:.4}", good_pred, mse_good);
+    println!("나쁜 예측:    {:?}  -> MSE = {:.4}", bad_pred, mse_bad);
+    println!();
+    println!("-> 예측이 정답에 가까울수록 MSE가 작다\n");
+}
+
+// ================================================================
+// 헬퍼 함수
+// ================================================================
+ 
+/// 실습용 데이터: y = 2x + 1
+fn sample_data() -> Vec<(f64, f64)> {
+    vec![(1.0, 3.0), (2.0, 5.0), (3.0, 7.0), (4.0, 9.0), (5.0, 11.0)]
+}
+ 
+/// 더 큰 데이터(12개): y = 2x + 1
+fn sample_data_large() -> Vec<(f64, f64)> {
+    (1..=12).map(|i| (i as f64, 2.0 * i as f64 + 1.0)).collect()
+}
+ 
+/// MSE = (1/N) sum (w*x + b - y)^2
+fn mse(data: &[(f64, f64)], w: f64, b: f64) -> f64 {
+    let n = data.len() as f64;
+    data.iter().map(|(x, y)| (w * x + b - y).powi(2)).sum::<f64>() / n
+}
+ 
+/// 예측 배열 vs 정답 배열의 MSE
+fn mse_pairs(pred: &[f64], target: &[f64]) -> f64 {
+    let n = pred.len() as f64;
+    pred.iter()
+        .zip(target.iter())
+        .map(|(p, t)| (p - t).powi(2))
+        .sum::<f64>()
+        / n
+}
+ 
+/// MSE의 기울기 (dL/dw, dL/db)
+///   dL/dw = (1/N) sum 2(w*x+b - y)*x
+///   dL/db = (1/N) sum 2(w*x+b - y)
+fn gradient(data: &[(f64, f64)], w: f64, b: f64) -> (f64, f64) {
+    let n = data.len() as f64;
+    let mut dw = 0.0;
+    let mut db = 0.0;
+    for (x, y) in data {
+        let err = w * x + b - y;
+        dw += 2.0 * err * x;
+        db += 2.0 * err;
+    }
+    (dw / n, db / n)
 }
