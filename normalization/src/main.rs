@@ -12,6 +12,7 @@ fn main() {
     demo_minibatch(&batch);
     demo_layernorm(&batch);
     demo_batchnorm(&batch);
+    demo_dropout();
 }
 
 // ----------------------------------------------------------------
@@ -101,4 +102,65 @@ fn demo_batchnorm(batch: &[Vec<f64>]) {
     println!("핵심 차이:");
     println!("  LayerNorm: 행(샘플) 방향 정규화 -> 배치 크기 무관 -> LLM 표준");
     println!("  BatchNorm: 열(feature) 방향 정규화 -> 배치에 의존 -> CNN 등에서 사용\n");
+}
+
+// ----------------------------------------------------------------
+// 4. Dropout (과적합 방지) — 학습 vs 추론 모드
+// ----------------------------------------------------------------
+// 학습: 확률 p로 뉴런을 끄고, 살아남은 값은 1/(1-p)배 (기댓값 보정)
+// 추론: 아무것도 안 끔 (전체 사용)
+// 이 '모드 구분'이 핵심.
+ 
+fn dropout(x: &[f64], p: f64, training: bool, rng: &mut Rng) -> Vec<f64> {
+    if !training || p == 0.0 {
+        return x.to_vec(); // 추론 모드: 그대로
+    }
+    let scale = 1.0 / (1.0 - p);
+    x.iter()
+        .map(|&v| if rng.next_f64() > p { v * scale } else { 0.0 })
+        .collect()
+}
+ 
+fn demo_dropout() {
+    println!("-- 4) Dropout (학습 vs 추론 모드) --\n");
+    let mut rng = Rng::new(0);
+    let x = vec![1.0; 10];
+ 
+    let train_out = dropout(&x, 0.5, true, &mut rng);
+    let infer_out = dropout(&x, 0.5, false, &mut rng);
+    println!("입력: {:?}", x);
+    println!("학습 모드 (p=0.5): {:?}", train_out.iter().map(|v| format!("{v:.1}")).collect::<Vec<_>>());
+    println!("                   ^ 일부는 0(꺼짐), 나머지는 2배(보정)");
+    println!("추론 모드 (p=0.5): {:?}", infer_out.iter().map(|v| format!("{v:.1}")).collect::<Vec<_>>());
+    println!("                   ^ 전부 그대로 (끄지 않음)");
+    println!();
+ 
+    // 기댓값 보존 확인
+    let mut total = 0.0;
+    let trials = 200;
+    for _ in 0..trials {
+        let big = vec![1.0; 1000];
+        let out = dropout(&big, 0.5, true, &mut rng);
+        total += out.iter().sum::<f64>() / out.len() as f64;
+    }
+    println!("학습 모드 출력 평균({trials}회 반복): {:.4}", total / trials as f64);
+    println!("-> 입력 평균 1.0과 거의 같다. 스케일 보정 덕에 기댓값이 유지됨.\n");
+}
+
+// ----------------------------------------------------------------
+// 간단한 난수 생성기 (외부 크레이트 없이)
+// ----------------------------------------------------------------
+ 
+struct Rng {
+    state: u64,
+}
+ 
+impl Rng {
+    fn new(seed: u64) -> Self {
+        Rng { state: seed.wrapping_add(0x9E3779B97F4A7C15) }
+    }
+    fn next_f64(&mut self) -> f64 {
+        self.state = self.state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        ((self.state >> 11) as f64) / ((1u64 << 53) as f64)
+    }
 }
