@@ -11,6 +11,7 @@ fn main() {
  
     demo_minibatch(&batch);
     demo_layernorm(&batch);
+    demo_batchnorm(&batch);
 }
 
 // ----------------------------------------------------------------
@@ -67,4 +68,37 @@ fn demo_layernorm(batch: &[Vec<f64>]) {
             out.iter().map(|v| format!("{v:.4}")).collect::<Vec<_>>(), mean, var);
     }
     println!("-> 샘플마다 독립적으로 정규화. 배치 크기와 무관 -> LLM에 적합\n");
+}
+
+// ----------------------------------------------------------------
+// 3. BatchNorm (비교용) — 정규화 '방향'이 다르다
+// ----------------------------------------------------------------
+// 각 'feature(열)'를 배치 전체에 걸쳐 정규화.
+//   문제: 배치가 작거나 1이면 통계 불안정 -> 시퀀스 데이터에 부적합.
+//   그래서 LLM은 BatchNorm 대신 LayerNorm을 쓴다.
+ 
+fn demo_batchnorm(batch: &[Vec<f64>]) {
+    println!("-- 3) BatchNorm (각 feature를 정규화) — 비교용 --\n");
+    let rows = batch.len();
+    let cols = batch[0].len();
+    let eps = 1e-5;
+ 
+    // 열별 평균/분산
+    let mut out = vec![vec![0.0; cols]; rows];
+    for j in 0..cols {
+        let mean = (0..rows).map(|i| batch[i][j]).sum::<f64>() / rows as f64;
+        let var = (0..rows).map(|i| (batch[i][j] - mean).powi(2)).sum::<f64>() / rows as f64;
+        let denom = (var + eps).sqrt();
+        for i in 0..rows {
+            out[i][j] = (batch[i][j] - mean) / denom;
+        }
+    }
+    println!("BatchNorm 출력:");
+    for row in &out {
+        println!("  {:?}", row.iter().map(|v| format!("{v:.4}")).collect::<Vec<_>>());
+    }
+    println!();
+    println!("핵심 차이:");
+    println!("  LayerNorm: 행(샘플) 방향 정규화 -> 배치 크기 무관 -> LLM 표준");
+    println!("  BatchNorm: 열(feature) 방향 정규화 -> 배치에 의존 -> CNN 등에서 사용\n");
 }
