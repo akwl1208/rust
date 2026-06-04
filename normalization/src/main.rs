@@ -13,6 +13,7 @@ fn main() {
     demo_layernorm(&batch);
     demo_batchnorm(&batch);
     demo_dropout();
+    demo_gradient_clipping();
 }
 
 // ----------------------------------------------------------------
@@ -145,6 +146,37 @@ fn demo_dropout() {
     }
     println!("학습 모드 출력 평균({trials}회 반복): {:.4}", total / trials as f64);
     println!("-> 입력 평균 1.0과 거의 같다. 스케일 보정 덕에 기댓값이 유지됨.\n");
+}
+
+// ----------------------------------------------------------------
+// 5. Gradient Clipping (gradient 폭발 제어)
+// ----------------------------------------------------------------
+// gradient 전체 크기(norm)가 임계값을 넘으면 비율 유지한 채 줄임.
+//   norm = sqrt(sum(g^2))
+//   norm > max_norm 이면:  g = g * (max_norm / norm)
+// 방향은 보존, 크기만 제한. LLM 학습에서 거의 필수.
+ 
+fn clip_grad(g: &[f64], max_norm: f64) -> (Vec<f64>, f64) {
+    let norm = g.iter().map(|x| x * x).sum::<f64>().sqrt();
+    if norm > max_norm {
+        let scale = max_norm / norm;
+        (g.iter().map(|&x| x * scale).collect(), norm)
+    } else {
+        (g.to_vec(), norm)
+    }
+}
+ 
+fn demo_gradient_clipping() {
+    println!("-- 5) Gradient Clipping (폭발 제어) --\n");
+    for g in [vec![3.0, 4.0], vec![0.3, 0.4]] {
+        let (clipped, norm) = clip_grad(&g, 1.0);
+        let new_norm = clipped.iter().map(|x| x * x).sum::<f64>().sqrt();
+        let status = if norm > 1.0 { "제한됨" } else { "그대로 (임계값 이하)" };
+        println!("gradient {:?}, norm={norm:.2} -> clip 후 {:?}, norm={new_norm:.3}  [{status}]",
+            g, clipped.iter().map(|v| format!("{v:.3}")).collect::<Vec<_>>());
+    }
+    println!();
+    println!("-> 방향은 유지하고 크기만 임계값으로 제한. LLM 학습 안정성의 핵심.\n");
 }
 
 // ----------------------------------------------------------------
