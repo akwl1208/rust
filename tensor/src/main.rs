@@ -288,13 +288,6 @@ fn ex7_mini_project() {
     let rhs = matmul(&transpose(&b), &transpose(&a));
     println!("(A·B)ᵀ == Bᵀ·Aᵀ 성질: {}\n",
         if lhs == rhs { "✓ 성립" } else { "✗ 불성립" });
- 
-    // 🚀 도전 과제
-    println!("🚀 도전 과제:");
-    println!("  1. mat_add() 를 직접 구현해서 아래 함수 교체");
-    println!("  2. matmul()  을 3중 for문 없이 iterator로 구현");
-    println!("  3. softmax() 함수 구현 (Day 35 예습)");
-    println!("     힌트: exp(x_i) / sum(exp(x_j) for all j)");
 }
 
 // ================================================================
